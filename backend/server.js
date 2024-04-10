@@ -9,6 +9,7 @@ app.use(cors({
     origin: 'http://localhost:3000'
 }));
 
+require('dotenv').config();
 require('./routes')(app);
 
 const port = 8080;
