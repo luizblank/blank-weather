@@ -1,40 +1,53 @@
 import React, { useState, useEffect } from 'react';
+import CryptoJS from 'crypto-js';
+import { SECRET } from './env';
 import axios from 'axios';
 import './App.css';
 
 function App() {
-  const [position, setPosition] = useState({ latitude: null, longitude: null });
+  const [position, setPosition] = useState(null);
+  const [weather, setWeather] = useState(null);
 
   function setLocation() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition((position) => {
-        setPosition(
-          {
+        setPosition({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-          }
-        );
+          });
       });
-    } else {
-      console.log("Geolocation is not available in your browser.");
+      return;
     }
+    console.log("Geolocation is not available in your browser.");
   }
 
   async function getWeather() {
-    const response = await axios.get('http://localhost:8080/weather/', {
-      
+    const encrypted = CryptoJS.AES.encrypt(JSON.stringify(position), SECRET).toString();
+    const response = await axios.post('http://localhost:8080/weather/', {
+      position: encrypted
     });
-    return response;
+
+    const decrypted = CryptoJS.AES.decrypt(response.data.weather, SECRET).toString(CryptoJS.enc.Utf8);
+    const new_weather = JSON.parse(decrypted);
+    setWeather(new_weather);
   }
 
   useEffect(() => {
     setLocation();
   }, []);
 
+  useEffect(() => {
+    if (position != null) {
+      async function fetchData() {
+        await getWeather()
+      };
+      fetchData();
+    }
+  }, [position])
+
   return (
     <div>
-      {position.latitude}
-      <button onClick={() => getWeather()}></button>
+      {weather == null ? 'not loaded' : weather.currentConditions.cloudcover}
     </div>
   );
 }
